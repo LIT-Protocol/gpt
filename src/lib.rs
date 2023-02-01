@@ -25,6 +25,7 @@
 //!         "rust_partition",
 //!         100,
 //!         gpt::partition_types::LINUX_FS,
+//!         None,
 //!         0,
 //!         None
 //!     );
@@ -55,9 +56,9 @@
 //!
 //!     // At this point, gdisk.primary_header() and gdisk.backup_header() are populated...
 //!     // Add a few partitions to demonstrate how...
-//!     gdisk.add_partition("test1", 1024 * 12, gpt::partition_types::BASIC, 0, None)
+//!     gdisk.add_partition("test1", 1024 * 12, gpt::partition_types::BASIC, None, 0, None)
 //!         .expect("failed to add test1 partition");
-//!     gdisk.add_partition("test2", 1024 * 18, gpt::partition_types::LINUX_FS, 0, None)
+//!     gdisk.add_partition("test2", 1024 * 18, gpt::partition_types::LINUX_FS, None, 0, None)
 //!         .expect("failed to add test2 partition");
 //!     // Write the partition table and take ownership of
 //!     // the underlying memory buffer-backed block device
@@ -79,6 +80,7 @@ use log::*;
 use std::collections::BTreeMap;
 use std::io::{Read, Seek, Write};
 use std::{fs, io, path};
+use uuid::Uuid;
 
 #[macro_use]
 mod macros;
@@ -227,6 +229,7 @@ impl<'a> GptDisk<'a> {
         name: &str,
         size: u64,
         part_type: partition_types::Type,
+        part_guid: Option<Uuid>,
         flags: u64,
         part_alignment: Option<u64>,
     ) -> io::Result<u32> {
@@ -264,7 +267,7 @@ impl<'a> GptDisk<'a> {
                 );
                 let part = partition::Partition {
                     part_type_guid: part_type,
-                    part_guid: uuid::Uuid::new_v4(),
+                    part_guid: part_guid.unwrap_or_else(|| uuid::Uuid::new_v4()),
                     first_lba: starting_lba,
                     last_lba: starting_lba + size_lba - 1_u64,
                     flags,
